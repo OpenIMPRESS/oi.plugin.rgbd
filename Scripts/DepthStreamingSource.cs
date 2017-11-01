@@ -3,13 +3,14 @@ using System.Collections;
 using System.Threading;
 using System;
 using System.Collections.Generic;
+using oi.core.network;
 
 namespace HMIMR.DepthStreaming {
 
-    [RequireComponent(typeof(IMPRESS_UDPClient))]
+    [RequireComponent(typeof(UDPConnector))]
     public class DepthStreamingSource : FrameSource {
         private DepthStreamingListener listener;
-        private IMPRESS_UDPClient udpClient;
+        private UDPConnector udpClient;
 
         [HideInInspector]
         public Vector3 cameraPosition;
@@ -19,7 +20,7 @@ namespace HMIMR.DepthStreaming {
 
         private new void Start() {
             base.Start();
-            udpClient = GetComponent<IMPRESS_UDPClient>();
+            udpClient = GetComponent<UDPConnector>();
             listener = new DepthStreamingListener(udpClient,this);
         }
 

@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using System.Threading;
 using UnityEngine;
 using System;
+using oi.core.network;
 
 namespace HMIMR.DepthStreaming {
 
@@ -12,9 +13,9 @@ namespace HMIMR.DepthStreaming {
         private readonly Thread _listenThread;
         private int headerSize = 12;
         private readonly DepthStreamingSource _frameSource;
-        IMPRESS_UDPClient udpClient;
+        UDPConnector udpClient;
 
-        public DepthStreamingListener(IMPRESS_UDPClient _udpClient, DepthStreamingSource fs) {
+        public DepthStreamingListener(UDPConnector _udpClient, DepthStreamingSource fs) {
             _listenThread = new Thread(new ThreadStart(Listen));
             _frameSource = fs;
             udpClient = _udpClient;
