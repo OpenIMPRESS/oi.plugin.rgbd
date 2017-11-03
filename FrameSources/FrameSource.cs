@@ -109,7 +109,7 @@ namespace oi.plugin.rgbd {
             lock (_queue) {
                 APreFrameObj returnObj = null;
                 if (_queue.Count > 1) {
-                    Debug.Log("Skipping " + (_queue.Count - 1) + " Frames");
+                    //Debug.Log("Skipping " + (_queue.Count - 1) + " Frames");
                 } else if (_queue.Count == 0) {
                     return null;
                 }
