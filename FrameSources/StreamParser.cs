@@ -32,7 +32,8 @@ namespace oi.plugin.rgbd {
 
                 if (receiveBytes== null) continue;
                 if (receiveBytes.Length < 2) continue;
-                
+
+
                 byte frameType = receiveBytes[0];
                 byte deviceID = receiveBytes[1];
 

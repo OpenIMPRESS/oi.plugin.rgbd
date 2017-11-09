@@ -9,8 +9,6 @@ namespace oi.plugin.rgbd {
 	[RequireComponent(typeof(UDPConnector))]
 	public class RGBDControl : MonoBehaviour {
 
-		public bool sendHelloWorld = false;
-
 		UDPConnector oiudp;
 		void Start () {
         	oiudp = GetComponent<UDPConnector>();
@@ -19,22 +17,60 @@ namespace oi.plugin.rgbd {
 		
 		// Update is called once per frame
 		void Update () {
-			if (sendHelloWorld) {
-				RGBDControlMsg msg = new RGBDControlMsg();
-				msg.param = "record";
-				msg.value = "start";
-				string json = JsonUtility.ToJson(msg);
-				byte[] sendBytes = System.Text.Encoding.ASCII.GetBytes(json);
-				oiudp.SendData(sendBytes);
-				sendHelloWorld = false;
-			}
 		}
-	}
 
-	[System.Serializable]
-	public class RGBDControlMsg {
-		public string param;
-		public string value;
-	}
+        private void OnGUI() {
+            if (GUI.Button(new Rect(10, 10, 110, 20), "KILL")) {
+                RGBDControlApp msg = new RGBDControlApp();
+                msg.val = "stop";
+                SendMsg(msg);
+            }
 
+            if (GUI.Button(new Rect(10, 40, 110, 20), "START REC")) {
+                RGBDControlRecord msg = new RGBDControlRecord();
+                msg.val = "startrec";
+                SendMsg(msg);
+            }
+
+            if (GUI.Button(new Rect(10, 70, 110, 20), "STOP REC")) {
+                RGBDControlRecord msg = new RGBDControlRecord();
+                msg.val = "stoprec";
+                SendMsg(msg);
+            }
+
+            if (GUI.Button(new Rect(10, 100, 110, 20), "START PLAY")) {
+                RGBDControlRecord msg = new RGBDControlRecord();
+                msg.val = "startplay";
+                SendMsg(msg);
+            }
+
+
+            if (GUI.Button(new Rect(10, 130, 110, 20), "STOP PLAY")) {
+                RGBDControlRecord msg = new RGBDControlRecord();
+                msg.val = "stopplay";
+                SendMsg(msg);
+            }
+        }
+
+        private void SendMsg(object msg) {
+            string json = JsonUtility.ToJson(msg);
+            byte[] sendBytes = System.Text.Encoding.ASCII.GetBytes(json);
+            oiudp.SendData(sendBytes);
+        }
+    }
+
+    [System.Serializable]
+	public class RGBDControlApp {
+		public string cmd = "application";
+		public string val;
+    }
+
+    [System.Serializable]
+    public class RGBDControlRecord {
+        public string cmd = "record";
+        public string val; // startrec, stoprec, startplay, stopplay
+        public bool loop = true; // if startplay: should it loop
+        public int maxframes = -1; // maximum frames to record;
+        public string file = "default"; // file name
+    }
 }
