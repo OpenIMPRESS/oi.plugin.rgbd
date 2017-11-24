@@ -51,19 +51,19 @@ namespace oi.plugin.rgbd {
 
         private readonly int _frameBufferSize = 16;
         private readonly Queue<SequencedFrame> _unusedQueue;
-        private readonly Dictionary<UInt32, SequencedFrame> _frameBuffer;
+        private readonly Dictionary<ulong, SequencedFrame> _frameBuffer;
 
         private readonly object _unusedQueueLock = new object();
         private readonly object _frameBufferLock = new object();
         private readonly Thread _processThread;
 
         private bool _processing;
-        private UInt32 _lastSequenceRendered = 0;
+        private ulong _lastSequenceRendered = 0;
 
         public VSyncProcessor(StreamFrameSource fs, DepthDeviceType t, DepthCameraIntrinsics cI,
             ushort w, ushort h, ushort ml, string guid)
             : base(fs, t, cI, w, h, ml, guid) {
-            _frameBuffer = new Dictionary<UInt32, SequencedFrame>();
+            _frameBuffer = new Dictionary<ulong, SequencedFrame>();
             _unusedQueue = new Queue<SequencedFrame>();
             for (int i = 0; i < _frameBufferSize; i++) {
                 _unusedQueue.Enqueue(new SequencedFrame(this));
@@ -90,8 +90,8 @@ namespace oi.plugin.rgbd {
             try {
                 while (_processing) {
                     lock (_frameBufferLock) {
-                        UInt32 remove = 0;
-                        foreach (KeyValuePair<UInt32, SequencedFrame> sequencedFrame in _frameBuffer) {
+                        ulong remove = 0;
+                        foreach (KeyValuePair<ulong, SequencedFrame> sequencedFrame in _frameBuffer) {
                             if (sequencedFrame.Key < _lastSequenceRendered) {
                                 remove = sequencedFrame.Key;
                                 //Debug.Log("A newer frame has already been rendered: "+remove);
@@ -129,35 +129,38 @@ namespace oi.plugin.rgbd {
             Debug.Log("Process Thread Closed");
         }
 
-        public override void HandleColorData(uint seq, ref byte[] data, int dataOffset) {
+        public override void HandleColorData(ulong timestamp, ref byte[] data, int dataOffset) {
+            throw new NotImplementedException();
+        }
+        public override void HandleBodyIndexData(ulong timestamp, ref byte[] data, int dataOffset) {
             throw new NotImplementedException();
         }
 
-        public override void HandleDepthData(ushort sr, ushort er, UInt32 seq, ref byte[] data, int dataOffset) {
-            if (seq < _lastSequenceRendered) return;
+        public override void HandleDepthData(ushort sr, ushort er, ulong timestamp, ref byte[] data, int dataOffset) {
+            if (timestamp < _lastSequenceRendered) return;
 
             lock (_frameBufferLock)
             lock (_unusedQueueLock) {
-                if (_frameBuffer.ContainsKey(seq)) {
-                    _frameBuffer[seq].LoadDepthData(sr, er, ref data, dataOffset);
-                    _frameBuffer[seq].MarkAsLoaded(sr, er);
+                if (_frameBuffer.ContainsKey(timestamp)) {
+                    _frameBuffer[timestamp].LoadDepthData(sr, er, ref data, dataOffset);
+                    _frameBuffer[timestamp].MarkAsLoaded(sr, er);
                     //Debug.Log("Using old frame: "+seq);
                 } else if (_unusedQueue.Count > 0) {
-                    _frameBuffer[seq] = _unusedQueue.Dequeue();
-                    _frameBuffer[seq].Reset();
-                    _frameBuffer[seq].LoadDepthData(sr, er, ref data, dataOffset);
-                    _frameBuffer[seq].MarkAsLoaded(sr, er);
+                    _frameBuffer[timestamp] = _unusedQueue.Dequeue();
+                    _frameBuffer[timestamp].Reset();
+                    _frameBuffer[timestamp].LoadDepthData(sr, er, ref data, dataOffset);
+                    _frameBuffer[timestamp].MarkAsLoaded(sr, er);
                     //Debug.Log("Dequeued for: "+seq);
                 } else if (_frameBuffer.Count > 0) {
-                    UInt32 oldest = _frameBuffer.Keys.Min();
+                    ulong oldest = _frameBuffer.Keys.Min();
                     SequencedFrame old = _frameBuffer[oldest];
                     _frameBuffer.Remove(oldest);
                     Debug.LogWarning("Dropping frame with seq: " + oldest + ", missing: " +
                                      old.CountMissing() + " of " + TotalHeight);
                     old.Reset();
-                    _frameBuffer[seq] = old;
-                    _frameBuffer[seq].LoadDepthData(sr, er, ref data, dataOffset);
-                    _frameBuffer[seq].MarkAsLoaded(sr, er);
+                    _frameBuffer[timestamp] = old;
+                    _frameBuffer[timestamp].LoadDepthData(sr, er, ref data, dataOffset);
+                    _frameBuffer[timestamp].MarkAsLoaded(sr, er);
                 } else {
                     Debug.LogWarning("Not enough (unused) framebuffers.");
                 }

@@ -21,7 +21,7 @@ namespace oi.plugin.rgbd {
         private new void Start() {
             base.Start();
             udpClient = GetComponent<UDPConnector>();
-            listener = new StreamParser(udpClient, this);
+            listener = new StreamParser(udpClient, GetComponent<RGBDAudio>(), GetComponent<RGBDControl>(),  this);
         }
 
         void OnApplicationQuit() {
@@ -29,8 +29,14 @@ namespace oi.plugin.rgbd {
         }
 
         void Update() {
-            cameraPosition = cameraTransform.position;
-            cameraRotation = cameraTransform.rotation;
+            if (false && originCOS) { 
+                cameraPosition = cameraTransform.position;
+                cameraRotation = cameraTransform.rotation;
+            } else {
+                cameraPosition = originCOS.InverseTransformPoint(cameraTransform.position);
+                cameraRotation = Quaternion.Inverse(originCOS.rotation) * cameraTransform.rotation;
+                //cameraPosition = cameraTransform.TransformPoint()
+            }
         }
 
     }

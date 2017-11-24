@@ -30,9 +30,11 @@ namespace oi.plugin.rgbd {
         //  frameSource.frameQueue.enqueue(...)
 
         public abstract void HandleDepthData(ushort startRow, ushort endRow,
-            UInt32 sequence, ref byte[] data, int dataOffset);
+            ulong timestamp, ref byte[] data, int dataOffset);
 
-        public abstract void HandleColorData(UInt32 sequenceC, ref byte[] data, int dataOffset);
+        public abstract void HandleColorData(ulong timestamp, ref byte[] data, int dataOffset);
+
+        public abstract void HandleBodyIndexData(ulong timestampBI, ref byte[] receiveBytes, int rgbd_header_size);
 
         /*
         public abstract byte[] GetRawColorData();

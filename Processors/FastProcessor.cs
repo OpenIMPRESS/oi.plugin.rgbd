@@ -16,6 +16,7 @@ namespace oi.plugin.rgbd {
             _processor = p;
             DXT1_colors = null;//new byte[_processor.TotalHeight * _processor.TotalWidth / 2];
             JPEG_colors = null;// new byte[_processor.TotalHeight * _processor.TotalWidth / 2];
+            BodyIndexJPEG_colors = null;
             DepthData = new ushort[_processor.TotalHeight * _processor.TotalWidth];
             positions = new Color[_processor.TotalHeight * _processor.TotalWidth];
             colSize = new Vector2(_processor.TotalWidth, _processor.TotalHeight);
@@ -25,7 +26,10 @@ namespace oi.plugin.rgbd {
         public void CopyFrom(FastFrame src) {
             // assuming initialized with same values
             //Buffer.BlockCopy(src.DXT1_colors, 0, DXT1_colors, 0, DXT1_colors.Length);
-            JPEG_colors = src.JPEG_colors;// (byte[]) src.JPEG_colors.Clone();
+            if (src.JPEG_colors != null)
+                JPEG_colors = src.JPEG_colors;// (byte[]) src.JPEG_colors.Clone();
+            if (src.BodyIndexJPEG_colors != null)
+                BodyIndexJPEG_colors = src.JPEG_colors;
             src.positions.CopyTo(positions, 0);
         }
 
@@ -38,6 +42,12 @@ namespace oi.plugin.rgbd {
             int jpegLength = data.Length - dataOffset;
             JPEG_colors = new byte[jpegLength];
             Buffer.BlockCopy(data, dataOffset, JPEG_colors, 0, jpegLength);
+        }
+
+        public void LoadBodyIndexData(ref byte[] data, int dataOffset) {
+            int jpegLength = data.Length - dataOffset;
+            BodyIndexJPEG_colors = new byte[jpegLength];
+            Buffer.BlockCopy(data, dataOffset, BodyIndexJPEG_colors, 0, jpegLength);
         }
 
         public void LoadDepthData(ushort sr, ushort er, ref byte[] data, int dataOffset) {
@@ -78,12 +88,12 @@ namespace oi.plugin.rgbd {
         private readonly object _frameBufferLock = new object();
 
         private bool _processing;
-        private UInt32 _newestSequence = 0;
+        private ulong _newestTimestamp = 0;
         private int continuousSmallerSeqAm = 0;
 
-        public FastProcessor(StreamFrameSource fs, DepthDeviceType t, DepthCameraIntrinsics cI,
-            ushort w, ushort h, ushort ml, string guid)
-            : base(fs, t, cI, w, h, ml, guid) {
+        public FastProcessor(StreamFrameSource fs, ConfigMessage cm)
+            : base(fs, cm.deviceType, cm.intrinsics, cm.intrinsics.width, cm.intrinsics.height, cm.maxLines, cm.GUID) {
+
             _frameBuffer = new Queue<FastFrame>();
             for (int i = 0; i < _frameBufferSize; i++) {
                 _frameBuffer.Enqueue(new FastFrame(this));
@@ -98,9 +108,25 @@ namespace oi.plugin.rgbd {
 
         public override void Close() { }
 
-        public override void HandleColorData(uint seq, ref byte[] data, int dataOffset) {
+        public override void HandleBodyIndexData(ulong timestamp, ref byte[] data, int dataOffset) {
             try {
-                if (seq < _newestSequence) return;
+                lock (_frameBufferLock) {
+                    if (_frameBuffer.Count < 2) {
+                        Debug.LogWarning("Renderer not fast enough, dropping a frame.");
+                        return;
+                    }
+
+                    _frameBuffer.Peek().LoadBodyIndexData(ref data, dataOffset);
+
+                }
+            } catch (Exception e) {
+                Debug.LogError(e);
+            }
+        }
+
+        public override void HandleColorData(ulong timestamp, ref byte[] data, int dataOffset) {
+            try {
+                if (timestamp < _newestTimestamp) return;
                 lock (_frameBufferLock) {
                     if (_frameBuffer.Count < 2) {
                         Debug.LogWarning("Renderer not fast enough, dropping a frame.");
@@ -115,12 +141,12 @@ namespace oi.plugin.rgbd {
             }
         }
 
-        public override void HandleDepthData(ushort sr, ushort er, UInt32 seq, ref byte[] data, int dataOffset) {
+        public override void HandleDepthData(ushort sr, ushort er, ulong timestamp, ref byte[] data, int dataOffset) {
             try {
-                if (seq < _newestSequence) {
+                if (timestamp < _newestTimestamp) {
                     continuousSmallerSeqAm++;
-                    if (continuousSmallerSeqAm > 30)
-                        _newestSequence = seq-1;
+                    if (continuousSmallerSeqAm > 1000) // 
+                        _newestTimestamp = timestamp-1;
                     else
                         return;
                 }
@@ -136,8 +162,8 @@ namespace oi.plugin.rgbd {
 
                     _frameBuffer.Peek().LoadDepthData(sr, er, ref data, dataOffset);
 
-                    if (er == TotalHeight && seq > _newestSequence) {
-                        _newestSequence = seq;
+                    if (er == TotalHeight && timestamp > _newestTimestamp) {
+                        _newestTimestamp = timestamp;
                         ff = _frameBuffer.Dequeue();
                         _frameBuffer.Peek().CopyFrom(ff);
                     }

@@ -8,6 +8,7 @@ namespace oi.plugin.rgbd {
     public class RGBDViewer : MonoBehaviour {
         public Material m_material;
         public FrameSource frameSource;
+        public bool fadeColorIfInactive = true;
 
         private Vector2 resolution = new Vector2();
         private List<GameObject> meshes = new List<GameObject>();
@@ -20,21 +21,38 @@ namespace oi.plugin.rgbd {
         private float lastSample = 0.0f;
         private int fpsCounter = 0;
 
+        private float colorFade;
+        private float lastFrame;
+        private float fadeDuration = 0.8f; // 800ms fade
+        private float fadeAfter = 0.2f;
+
         // Use this for initialization
         void Start() {
+            colorFade = 0.0f;
+            lastFrame = float.MinValue;
+            /*
+            if (transform.parent == null) {
+                transform.position = Vector3.zero;
+                transform.rotation = Quaternion.identity;
+            } else {
+                transform.localPosition = Vector3.zero;
+                transform.localRotation = Quaternion.identity;
+            }*/
         }
 
         // Update is called once per frame
         void Update() {
             FrameObj frame = frameSource.GetNewFrame();
-            if (lastSample + fpsSampleInterval < Time.time) {
+            float now = Time.time;
+            if (lastSample + fpsSampleInterval < now) {
                 FPS = fpsCounter / fpsSampleInterval;
                 fpsCounter = 0;
-                lastSample = Time.time;
+                lastSample = now;
             }
+
             if (frame != null) {
                 fpsCounter++;
-
+                lastFrame = now;
 
                 Vector2 _resolution = new Vector2(frame.posTex.width, frame.posTex.height);
                 if (!resolution.Equals(_resolution)) {
@@ -43,8 +61,10 @@ namespace oi.plugin.rgbd {
                     CreateMesh();
                 }
 
-                transform.position = frame.cameraPos;
-                transform.rotation = frame.cameraRot;
+                transform.localPosition = frame.cameraPos;
+                transform.localRotation = frame.cameraRot;
+                //transform.position = frame.cameraPos;
+                //transform.rotation = frame.cameraRot;
 
                 Texture2D newColTex = frame.colTex;
                 if (newColTex != null) {
@@ -57,6 +77,25 @@ namespace oi.plugin.rgbd {
                     Destroy(m_material.GetTexture("_PositionTex"));
                     m_material.SetTexture("_PositionTex", newPosTex);
                 }
+
+                Texture2D newBidxTex = frame.bidxTex;
+                if (newBidxTex != null) {
+                    Destroy(m_material.GetTexture("_BidxTex"));
+                    m_material.SetTexture("_BidxTex", newBidxTex);
+                }
+            }
+
+            if (fadeColorIfInactive) {
+                if ((now - lastFrame) >= fadeAfter) {
+                    float deltaFade = (now - lastFrame) - fadeAfter;
+                    colorFade = Mathf.Max(0.0f, 1.0f - (deltaFade / fadeDuration));
+                } else if (colorFade < 1.0f) {
+                    colorFade += Time.deltaTime / fadeDuration;
+                }
+
+                m_material.SetFloat("_Fade", colorFade);
+            } else {
+                m_material.SetFloat("_Fade", 1.0f);
             }
         }
 

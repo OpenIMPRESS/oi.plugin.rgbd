@@ -6,7 +6,9 @@ Shader "Custom/VertexTex"
 	{
 		_ParticleSize("Particle Size", Range(0, 0.015)) = 0.003
 		_PositionTex("Position Texture", 2D) = "black" {}
+		_BidxTex("Body Index Texture", 2D) = "black" {}
 		_ColorTex("Color Texture", 2D) = "black" {}
+		_Fade("Fade", Range(0.0, 1.0)) = 0.0
 	}
 
 	SubShader
@@ -43,8 +45,10 @@ Shader "Custom/VertexTex"
 			};
 
 			float _ParticleSize;
+			float _Fade;
 			sampler2D _PositionTex;
 			sampler2D _ColorTex;
+			sampler2D _BidxTex;
 
 			geoInput vert(vertexInput v)
 			{
@@ -75,11 +79,8 @@ Shader "Custom/VertexTex"
 				[loop]
 				for (uint i = 0; i < 4; i++)
 				{
-					pIn.pos = mul(UNITY_MATRIX_P,
-						mul(UNITY_MATRIX_MV, p[0].pos)
-						+ float4(v[i].x, v[i].y, 0.0, 0.0));
+					pIn.pos = mul(UNITY_MATRIX_P, mul(UNITY_MATRIX_MV, p[0].pos) + float4(v[i].x, v[i].y, 0.0, 0.0));
 					pIn.uvCol = p[0].uvCol;
-
 					triStream.Append(pIn);
 				}
 			}
@@ -87,6 +88,17 @@ Shader "Custom/VertexTex"
 			float4 frag(fragInput i) : COLOR
 			{
 				float3 c = tex2D(_ColorTex, i.uvCol);
+				float bid = tex2D(_BidxTex, i.uvCol);
+				
+				float intensity = (c.r + c.g + c.b)*0.33;
+				c.r = (c.r * _Fade) + (intensity*(1.0 - _Fade));
+				c.g = (c.g * _Fade) + (intensity*(1.0 - _Fade));
+				c.b = (c.b * _Fade) + (intensity*(1.0 - _Fade));
+				/*
+				c.r = ((c.r * bid) + (intensity*(1.0 - _Fade)))*step(bid, 0.9);
+				c.g = ((c.g * bid) + (intensity*(1.0 - _Fade)))*step(bid, 0.9);
+				c.b = ((c.b * bid) + (intensity*(1.0 - _Fade)))*step(bid, 0.9);
+				*/
 				return float4(c, 1);
 			}
 			ENDCG

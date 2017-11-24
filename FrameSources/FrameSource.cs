@@ -8,6 +8,7 @@ namespace oi.plugin.rgbd {
     public class FrameSource : MonoBehaviour {
 
         public Transform cameraTransform;
+        public Transform originCOS;
 
         [HideInInspector]
         public LockingQueue frameQueue = new LockingQueue();
@@ -56,6 +57,14 @@ namespace oi.plugin.rgbd {
                     newFrame.colTex.Apply();
                 }
 
+                if (preObj.BodyIndexJPEG_colors != null) {
+                    newFrame.bidxTex = new Texture2D((int)preObj.colSize.x, (int)preObj.colSize.y); //TextureFormat.Alpha8
+                    newFrame.bidxTex.wrapMode = TextureWrapMode.Clamp;
+                    newFrame.bidxTex.filterMode = FilterMode.Point;
+                    newFrame.bidxTex.LoadImage(preObj.BodyIndexJPEG_colors);
+                    newFrame.bidxTex.Apply();
+                }
+
                 newFrame.cameraPos = preObj.cameraPos;
                 newFrame.cameraRot = preObj.cameraRot;
 
@@ -72,6 +81,7 @@ namespace oi.plugin.rgbd {
     public class FrameObj {
         public Texture2D posTex;
         public Texture2D colTex;
+        public Texture2D bidxTex;
         public Vector3 cameraPos;
         public Quaternion cameraRot;
         public float timeStamp;
@@ -83,6 +93,7 @@ namespace oi.plugin.rgbd {
         public Color[] colors;
         public byte[] DXT1_colors;
         public byte[] JPEG_colors;
+        public byte[] BodyIndexJPEG_colors;
         public Vector2 colSize;
         public Vector3 cameraPos;
         public Quaternion cameraRot;
