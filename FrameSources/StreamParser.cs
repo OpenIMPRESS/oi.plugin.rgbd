@@ -125,7 +125,7 @@ namespace oi.plugin.rgbd {
                             processor = new FastProcessor(_frameSource, cm);
                         }
 
-                        _control.UpdateState(cm);
+                        if (_control != null) _control.UpdateState(cm);
 
                         break;
                     case (byte) FrameType.DepthBlock:
@@ -167,7 +167,8 @@ namespace oi.plugin.rgbd {
                             aframe.samples[i] = BitConverter.ToSingle(receiveBytes, 12 +i*4);
                                 // BitConverter.ToUInt16(receiveBytes, 12+i*2) / 32767.0f;
                         }
-                        _audio.QueueBuffer(aframe);
+
+                        if (_audio != null) _audio.QueueBuffer(aframe);
                         break;
                     case (byte)FrameType.BodyData:
                         ushort nBodies = BitConverter.ToUInt16(receiveBytes, 2);
@@ -197,7 +198,7 @@ namespace oi.plugin.rgbd {
                                 bodyFrame.jointTrackingState[j] = (TrackingState) receiveBytes[trackingStateOffset + j];
                             }
 
-                            _control.QueueBodyFrame(bodyFrame);
+                            if (_control != null) _control.QueueBodyFrame(bodyFrame);
                         }
                         break;
                     default:
