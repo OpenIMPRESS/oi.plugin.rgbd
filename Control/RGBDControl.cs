@@ -129,7 +129,7 @@ namespace oi.plugin.rgbd {
             _recordedTransform.rotation = dce.rotation;
 
             RGBDStreamEventArgs evArgs = PollEventQueue();
-            if (evArgs != null) {
+            if (evArgs != null && RGBDStreamEvent != null) {
                 RGBDStreamEvent(this, evArgs);
             }
 
