@@ -41,8 +41,7 @@ namespace oi.plugin.rgbd {
         }
 
         // Update is called once per frame
-        void Update() {
-            FrameObj frame = frameSource.GetNewFrame();
+        public void RenderFrame(FrameObj frame) {
             float now = Time.time;
             if (lastSample + fpsSampleInterval < now) {
                 FPS = fpsCounter / fpsSampleInterval;
@@ -61,8 +60,8 @@ namespace oi.plugin.rgbd {
                     CreateMesh();
                 }
 
-                transform.localPosition = frame.cameraPos;
-                transform.localRotation = frame.cameraRot;
+                //transform.localPosition = frame.cameraPos;
+                //transform.localRotation = frame.cameraRot;
                 //transform.position = frame.cameraPos;
                 //transform.rotation = frame.cameraRot;
 
@@ -100,6 +99,10 @@ namespace oi.plugin.rgbd {
         }
 
         void CreateMesh() {
+            transform.position = Vector3.zero;
+            transform.rotation = Quaternion.identity;
+            transform.localScale = Vector3.one;
+
             foreach (GameObject mesh in meshes) {
                 Destroy(mesh);
             }
