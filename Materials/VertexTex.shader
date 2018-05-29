@@ -94,7 +94,8 @@ Shader "Custom/VertexTex"
 				c.r = (c.r * _Fade) + (intensity*(1.0 - _Fade));
 				c.g = (c.g * _Fade) + (intensity*(1.0 - _Fade));
 				c.b = (c.b * _Fade) + (intensity*(1.0 - _Fade));
-				/*
+				
+				/*Comment out to add background
 				c.r = ((c.r * bid) + (intensity*(1.0 - _Fade)))*step(bid, 0.9);
 				c.g = ((c.g * bid) + (intensity*(1.0 - _Fade)))*step(bid, 0.9);
 				c.b = ((c.b * bid) + (intensity*(1.0 - _Fade)))*step(bid, 0.9);
