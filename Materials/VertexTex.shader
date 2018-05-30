@@ -96,7 +96,7 @@ Shader "Custom/VertexTex"
 				c.b = (c.b * _Fade) + (intensity*(1.0 - _Fade));
 
 				/*Comment out to include background*/
-				if (bid < 0.01)
+				if (bid < 0.1)
 				{
 					discard;	
 				}
