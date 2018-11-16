@@ -1,4 +1,21 @@
-﻿using System.Net;
+﻿/*
+This file is part of the OpenIMPRESS project.
+
+OpenIMPRESS is free software: you can redistribute it and/or modify
+it under the terms of the Lesser GNU Lesser General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+OpenIMPRESS is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with OpenIMPRESS. If not, see <https://www.gnu.org/licenses/>.
+*/
+
+using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using UnityEngine;
@@ -21,7 +38,7 @@ namespace oi.plugin.rgbd {
         private RGBDControl _control;
         private bool _listening;
         private readonly Thread _listenThread;
-        private int _rgbd_header_size = 16;
+        private int _rgbd_header_size = 8;
         private int _body_header_size = 16;
         private int _body_data_size = 344;
         private readonly StreamFrameSource _frameSource;
@@ -40,15 +57,14 @@ namespace oi.plugin.rgbd {
             _listening = true;
             
             while (_listening) {
-                byte[] receiveBytes = new byte[] { };
-                receiveBytes = udpClient.GetNewData();
+                OIMSG msg_in = udpClient.GetNewData();
+                if (msg_in == null || msg_in.data == null) continue;
+                if (msg_in.data.Length < 2) continue;
 
-                if (receiveBytes== null) continue;
-                if (receiveBytes.Length < 2) continue;
+                byte[] receiveBytes = msg_in.data;
 
-
-                byte frameType = receiveBytes[0];
-                byte deviceID = receiveBytes[1];
+                byte frameType = msg_in.msgType;
+                byte deviceID = receiveBytes[0];
 
                 switch (frameType) {
                     case (byte) FrameType.Config:
@@ -60,8 +76,8 @@ namespace oi.plugin.rgbd {
                         //   - (...which would require some changes to how streaming source & render works)
 
                         // TODO: Parse config data
-                        cm.deviceType = (DepthDeviceType) receiveBytes[2];
-                        byte dataFlags = receiveBytes[3];
+                        cm.deviceType = (DepthDeviceType) receiveBytes[1];
+                        byte dataFlags = receiveBytes[2];
 
                         ushort frameWidth = BitConverter.ToUInt16(receiveBytes, 4);
                         ushort frameHeight = BitConverter.ToUInt16(receiveBytes, 6);
@@ -95,12 +111,14 @@ namespace oi.plugin.rgbd {
                             cm.GUID += (char) c;
                         }
 
-                        int filename_offset = 99;
+                        //int filename_offset = 99;
                         cm.filename = "";
                         cm.live = (dataFlags & LIVE_DATA) != 0;
                         cm.hasAudio = (dataFlags & AUDIO_DATA) != 0;
                         cm.hasBody = (dataFlags & BODY_DATA) != 0;
                         cm.hasRGBD = (dataFlags & RGBD_DATA) != 0;
+
+                        /*
                         if (!cm.live) {
                             for (int sOffset = 0; sOffset < 32; sOffset++) {
                                 byte c = receiveBytes[filename_offset + sOffset];
@@ -108,7 +126,7 @@ namespace oi.plugin.rgbd {
                                 cm.filename += (char)c;
                             }
                             Debug.Log("Replaying file: "+ cm.filename);
-                        }
+                        } */
 
 
                         Debug.Log("Config:\n\tFrame: " + frameWidth + " " + frameHeight + " " + maxLines +
@@ -130,21 +148,21 @@ namespace oi.plugin.rgbd {
                         break;
                     case (byte) FrameType.DepthBlock:
                         if (processor == null) break;
-                        //ushort delta_t = BitConverter.ToUInt16(receiveBytes, 2);
+                        ushort unused1 = BitConverter.ToUInt16(receiveBytes, 0);
+                        ushort delta_t = BitConverter.ToUInt16(receiveBytes, 2);
                         ushort startRowD = BitConverter.ToUInt16(receiveBytes, 4);
                         ushort endRowD = BitConverter.ToUInt16(receiveBytes, 6);
-                        ulong timestampD = BitConverter.ToUInt32(receiveBytes, 8);
 
                         //Debug.Log("Seq: "+sequence+" start: "+startRow+" end: "+endRow);
-                        processor.HandleDepthData(startRowD, endRowD, timestampD, ref receiveBytes, _rgbd_header_size);
+                        processor.HandleDepthData(startRowD, endRowD, msg_in.timestamp, ref receiveBytes, _rgbd_header_size);
                         break;
-                    case (byte)FrameType.ColorBlock:
+                    case (byte)FrameType.Color:
                         if (processor == null) break;
                         //ushort delta_t = BitConverter.ToUInt16(receiveBytes, 2);
                         //ushort startRowD = BitConverter.ToUInt16(receiveBytes, 4);
                         //ushort endRowD = BitConverter.ToUInt16(receiveBytes, 6);
-                        ulong timestampC = BitConverter.ToUInt32(receiveBytes, 8);
-                        processor.HandleColorData(timestampC, ref receiveBytes, _rgbd_header_size);
+                        //ulong timestampC = BitConverter.ToUInt32(receiveBytes, 8);
+                        processor.HandleColorData(msg_in.timestamp, ref receiveBytes, _rgbd_header_size);
                         break;
                     case (byte)FrameType.BodyIndexBlock:
                         if (processor == null) break;
@@ -202,7 +220,7 @@ namespace oi.plugin.rgbd {
                         }
                         break;
                     default:
-                        Debug.Log("Unknown DepthStreaming frame type: " + receiveBytes[0]);
+                        Debug.Log("Unknown DepthStreaming frame type: " + msg_in.msgType);
                         break;
                 }
             }
@@ -224,11 +242,12 @@ namespace oi.plugin.rgbd {
 
     public enum FrameType {
         Config = 0x01,
-        DepthBlock = 0x03,
-        ColorBlock = 0x04,
-        BodyData  = 0x05,
-        AudioSamples = 0x07,
-        BodyIndexBlock = 0x33
+        DepthBlock = 0x12,
+        ColorBlock = 0x22,
+        Color = 0x21,
+        BodyData  = 0x13,
+        AudioSamples = 0x11,
+        BodyIndexBlock = 0x52
     }
 
     public enum DepthDeviceType {
