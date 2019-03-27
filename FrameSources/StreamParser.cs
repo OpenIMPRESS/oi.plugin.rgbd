@@ -39,7 +39,7 @@ namespace oi.plugin.rgbd {
         private bool _listening;
         private readonly Thread _listenThread;
         private int _rgbd_header_size = 8;
-        private int _body_header_size = 16;
+        private int _body_header_size = 8;
         private int _body_data_size = 344;
         private readonly StreamFrameSource _frameSource;
         UDPConnector udpClient;
@@ -178,19 +178,20 @@ namespace oi.plugin.rgbd {
                         aframe.frequency = BitConverter.ToUInt16(receiveBytes, 2);
                         aframe.channels = BitConverter.ToUInt16(receiveBytes, 4);
                         ushort n_samples = BitConverter.ToUInt16(receiveBytes, 6);
-                        aframe.timestamp = BitConverter.ToUInt64(receiveBytes, 8);
-                        
+                        aframe.timestamp = msg_in.timestamp;
                         aframe.samples = new float[n_samples];
+                        //Debug.Log(receiveBytes.Length)
                         for (int i = 0; i < n_samples; i++) {
-                            aframe.samples[i] = BitConverter.ToSingle(receiveBytes, 12 +i*4);
-                                // BitConverter.ToUInt16(receiveBytes, 12+i*2) / 32767.0f;
+                            aframe.samples[i] = BitConverter.ToSingle(receiveBytes, 8 +i*4);
+                                 //BitConverter.ToUInt16(receiveBytes, 12+i*2) / 32767.0f;
                         }
-
                         if (_audio != null) _audio.QueueBuffer(aframe);
+
                         break;
                     case (byte)FrameType.BodyData:
                         ushort nBodies = BitConverter.ToUInt16(receiveBytes, 2);
-                        ulong timestampB = BitConverter.ToUInt64(receiveBytes, 8);
+                        ulong timestampB = msg_in.timestamp;
+                        Debug.Log("Got " + nBodies+" bodies.");
                         for (ushort i = 0; i < nBodies; i++) {
                             RGBDBodyFrame bodyFrame = new RGBDBodyFrame();
                             bodyFrame.timestamp = timestampB;
