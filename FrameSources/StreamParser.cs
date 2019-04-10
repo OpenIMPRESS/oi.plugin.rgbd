@@ -247,7 +247,8 @@ namespace oi.plugin.rgbd {
         Color = 0x21,
         BodyData  = 0x13,
         AudioSamples = 0x11,
-        BodyIndexBlock = 0x52
+        BodyIndexBlock = 0x52,
+        JPEG = 0x61
     }
 
     public enum DepthDeviceType {
