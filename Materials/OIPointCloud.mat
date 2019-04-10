@@ -6,7 +6,7 @@ Material:
   m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
-  m_Name: VertexTex
+  m_Name: OIPointCloud
   m_Shader: {fileID: 4800000, guid: c45fd5c736e9ee14dbccc65ea5a7ea0f, type: 3}
   m_ShaderKeywords: _EMISSION
   m_LightmapFlags: 1
@@ -81,7 +81,7 @@ Material:
     - _DetailNormalMapScale: 1
     - _Distance: 10
     - _DstBlend: 0
-    - _Fade: 0
+    - _Fade: 1.000487
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1

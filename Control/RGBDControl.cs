@@ -223,6 +223,7 @@ namespace oi.plugin.rgbd {
 
         public void RequestConfig() {
             RGBDControlApp msg = new RGBDControlApp();
+            msg.time = (NOW() + 5000);
             msg.val = "requestconfig";
             SendMsg(msg);
         }
@@ -275,6 +276,7 @@ namespace oi.plugin.rgbd {
 
         private void SendMsg(object msg) {
             string json = JsonUtility.ToJson(msg);
+            Debug.Log("SEND MESSAGE: " + json);
             byte[] sendBytes = System.Text.Encoding.ASCII.GetBytes(json);
             oiudp.SendData(sendBytes);
         }
@@ -388,6 +390,7 @@ namespace oi.plugin.rgbd {
 	public class RGBDControlApp {
 		public string cmd = "application";
 		public string val;
+        public ulong time;
     }
 
     [System.Serializable]
