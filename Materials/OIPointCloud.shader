@@ -28,8 +28,11 @@ Shader "Custom/VertexTex"
 
 	SubShader
 	{
-		Tags{ "RenderType" = "Opaque" }
+		//Tags{ "RenderType" = "Opaque" }
+		Tags {"Queue" = "Transparent" "RenderType" = "Transparent" }
 		LOD 100
+		ZWrite Off
+		Blend SrcAlpha OneMinusSrcAlpha
 
 		Pass
 		{
@@ -102,19 +105,15 @@ Shader "Custom/VertexTex"
 
 			float4 frag(fragInput i) : COLOR
 			{
-				float3 c = tex2D(_ColorTex, i.uvCol);
+				float4 c = tex2D(_ColorTex, i.uvCol);
 				float bid = tex2D(_BidxTex, i.uvCol);
 				
 				float intensity = (c.r + c.g + c.b)*0.33;
-				/*
-				c.r = (c.r * _Fade) + (intensity*(1.0 - _Fade));
-				c.g = (c.g * _Fade) + (intensity*(1.0 - _Fade));
-				c.b = (c.b * _Fade) + (intensity*(1.0 - _Fade));
-				*/
-				c.r = ((c.r * bid) + (intensity*(1.0 - _Fade)))*step(bid, 0.9);
-				c.g = ((c.g * bid) + (intensity*(1.0 - _Fade)))*step(bid, 0.9);
-				c.b = ((c.b * bid) + (intensity*(1.0 - _Fade)))*step(bid, 0.9);
-				return float4(c, 1);
+				c.r = (c.r + (intensity*(1.0 - _Fade)));
+				c.g = (c.g + (intensity*(1.0 - _Fade)));
+				c.b = (c.b + (intensity*(1.0 - _Fade)));
+				c.a = step(0.9, bid);
+				return c;
 			}
 			ENDCG
 		}
