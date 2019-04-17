@@ -46,7 +46,7 @@ namespace oi.plugin.rgbd {
         }
 
         void Update() {
-            if (false && originCOS) { 
+            if (originCOS == null) { 
                 cameraPosition = cameraTransform.position;
                 cameraRotation = cameraTransform.rotation;
             } else {

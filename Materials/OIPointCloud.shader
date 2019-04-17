@@ -112,7 +112,7 @@ Shader "Custom/VertexTex"
 				c.r = (c.r + (intensity*(1.0 - _Fade)));
 				c.g = (c.g + (intensity*(1.0 - _Fade)));
 				c.b = (c.b + (intensity*(1.0 - _Fade)));
-				c.a = step(0.9, bid);
+				c.a = step(0.1, bid);
 				return c;
 			}
 			ENDCG

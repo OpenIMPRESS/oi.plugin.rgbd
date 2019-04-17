@@ -191,7 +191,6 @@ namespace oi.plugin.rgbd {
                     case (byte)FrameType.BodyData:
                         ushort nBodies = BitConverter.ToUInt16(receiveBytes, 2);
                         ulong timestampB = msg_in.timestamp;
-                        Debug.Log("Got " + nBodies+" bodies.");
                         for (ushort i = 0; i < nBodies; i++) {
                             RGBDBodyFrame bodyFrame = new RGBDBodyFrame();
                             bodyFrame.timestamp = timestampB;
