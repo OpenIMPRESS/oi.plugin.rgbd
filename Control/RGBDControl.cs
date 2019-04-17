@@ -276,7 +276,6 @@ namespace oi.plugin.rgbd {
 
         private void SendMsg(object msg) {
             string json = JsonUtility.ToJson(msg);
-            Debug.Log("SEND MESSAGE: " + json);
             byte[] sendBytes = System.Text.Encoding.ASCII.GetBytes(json);
             oiudp.SendData(sendBytes);
         }
