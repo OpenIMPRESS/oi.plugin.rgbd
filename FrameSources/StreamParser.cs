@@ -26,6 +26,8 @@ namespace oi.plugin.rgbd {
     // De-serializes incomming depth data and forwards to processor.
     public class StreamParser {
 
+        uint lastAudioFrameSequence = 0;
+
         const byte RGBD_DATA =  1 << 0;
         const byte AUDIO_DATA = 1 << 1;
         const byte LIVE_DATA =  1 << 2;
@@ -173,8 +175,15 @@ namespace oi.plugin.rgbd {
                         processor.HandleBodyIndexData(timestampBI, ref receiveBytes, _rgbd_header_size);
                         break;
                     case (byte)FrameType.AudioSamples:
-                        if (processor == null) break;
                         RGBDAudioFrame aframe = new RGBDAudioFrame();
+                        int delta = (int) msg_in.sequenceID - (int)lastAudioFrameSequence;
+                        if (delta > 1) {
+                            Debug.LogWarning("Missing " + delta + " audio frames.");
+                        } else if (delta < 0) {
+                            Debug.LogWarning("Out of order audio: " + delta);
+                            lastAudioFrameSequence = msg_in.sequenceID;
+                            break;
+                        }
                         aframe.frequency = BitConverter.ToUInt16(receiveBytes, 2);
                         aframe.channels = BitConverter.ToUInt16(receiveBytes, 4);
                         ushort n_samples = BitConverter.ToUInt16(receiveBytes, 6);
@@ -186,7 +195,7 @@ namespace oi.plugin.rgbd {
                                  //BitConverter.ToUInt16(receiveBytes, 12+i*2) / 32767.0f;
                         }
                         if (_audio != null) _audio.QueueBuffer(aframe);
-
+                        lastAudioFrameSequence = msg_in.sequenceID;
                         break;
                     case (byte)FrameType.BodyData:
                         ushort nBodies = BitConverter.ToUInt16(receiveBytes, 2);
