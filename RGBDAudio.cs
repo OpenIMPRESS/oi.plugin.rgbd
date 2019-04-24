@@ -15,12 +15,10 @@ You should have received a copy of the GNU Lesser General Public License
 along with OpenIMPRESS. If not, see <https://www.gnu.org/licenses/>.
 */
 
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace oi.plugin.rgbd {
-
 
     public class RGBDAudioFrame {
         public float[] samples;
@@ -35,143 +33,31 @@ namespace oi.plugin.rgbd {
         private Queue<float> _sampleSampleBuffer;
         private Queue<RGBDAudioFrame> _sampleBuffer;
         private readonly object _sampleBufferLock = new object();
-        RGBDAudioFrame leftOver = null;
-
-        public float bufferedSecs;
-        public float SampleSec;
-        private int sampleSum = 0;
-        private float lastSampleAvg = 0.0f;
-        private float sampleAvgInterval = 2.0f;
-
-        AudioSource aud;
-        private int clipFreq = 16000;
-        private int clipChan = 1;
-        private int clipLen = 16000*30;
-
-        float SecondsPreBuffered() {
-            float res = 0.0f;
-            res += _sampleSampleBuffer.Count / 16000.0f;
-            /*
-            RGBDAudioFrame[] _frames;
-            lock (_sampleBufferLock) {
-                _frames =  _sampleBuffer.ToArray();
-            }
-
-            if (_frames != null) { 
-                foreach (RGBDAudioFrame f in _frames) {
-                    res += f.samples.Length / 16000.0f;
-                }
-            }
-
-            if (leftOver != null)
-                res += leftOver.samples.Length / 16000.0f;
-                */
-            return res;
-        }
-
-        private int _position;
-        void OnAudioSetPosition(int newPosition) {
-            _position = newPosition;
-        }
-
-        void OnAudioRead(float[] data) {
-            int count = 0;
-
-            lock (_sampleBufferLock) {
-                while (count < data.Length) {
-                    if (_sampleSampleBuffer.Count > 0) {
-                        data[count] = _sampleSampleBuffer.Dequeue();
-                    } else {
-                        data[count] = 0.0f;
-                    }
-                    count++;
-                }
-            }
-
-            /*
-            int read = 0;
-            while (count < data.Length) {
-                if (leftOver != null) {
-                    data[count] = leftOver.samples[read];
-                    if (read == leftOver.samples.Length - 1) {
-                        leftOver = null;
-                    }
-                } else {
-                    leftOver = DequeueBuffer();
-                    if (leftOver == null) { // We're out of audio data...
-                        data[count] = 0.0f;
-                    } else {
-                        read = 0;
-                        data[count] = leftOver.samples[read];
-                    }
-                }
-
-                count++;
-                read++;
-            }
-
-            if (leftOver != null) {
-                if (read >= leftOver.samples.Length) {
-                    leftOver = null;
-                } else {
-                    int n_samples_left = leftOver.samples.Length - read;
-                    float[] leftOverSamples = new float[n_samples_left];
-                    System.Array.Copy(leftOver.samples, read, leftOverSamples, 0, n_samples_left);
-                    leftOver.samples = leftOverSamples;
-                }
-            }*/
-        }
 
         void Awake() {
             _sampleSampleBuffer = new Queue<float>();
             _sampleBuffer = new Queue<RGBDAudioFrame>();
-            sampleSum = 0;
         }
 
         void Start() {
-            aud = GetComponent<AudioSource>();
-            aud.clip = AudioClip.Create("RemoteAudio", clipLen, clipChan, clipFreq, true, OnAudioRead, OnAudioSetPosition);
-            aud.loop = true;
-            aud.Play();
-        }
-
-        void EnqueueSamples() {
-            RGBDAudioFrame f = DequeueBuffer();
-            while (f != null) {
-                lock (_sampleBufferLock) {
-                    foreach (float s in f.samples) {
-                        _sampleSampleBuffer.Enqueue(s);
-                    }
-                }
-
-                sampleSum += f.samples.Length;
-                f = DequeueBuffer();
+            if (AudioSettings.outputSampleRate / 16000 != 3) {
+                Debug.LogWarning("oop[s");
             }
         }
 
-        void Update() {
-
+        void FixedUpdate() {
             EnqueueSamples();
-
-            bufferedSecs = SecondsPreBuffered();
-
-            if (lastSampleAvg + sampleAvgInterval <= Time.time) {
-                lastSampleAvg = Time.time;
-                SampleSec = sampleSum / 2.0f;
-                sampleSum = 0;
-            }
         }
 
-        private RGBDAudioFrame DequeueBuffer() {
-            RGBDAudioFrame res = null;
+
+        // OI Frames from audio frame parser/reader:
+        public void QueueBuffer(RGBDAudioFrame frame) {
             lock (_sampleBufferLock) {
-                if (_sampleBuffer.Count > 0) {
-                    res = _sampleBuffer.Dequeue();
-                }
+                _sampleBuffer.Enqueue(frame);
             }
-            return res;
         }
 
+        // Empty the buffer
         public void Clear() {
             lock (_sampleBufferLock) {
                 _sampleSampleBuffer.Clear();
@@ -179,106 +65,19 @@ namespace oi.plugin.rgbd {
             }
         }
 
-        public void QueueBuffer(RGBDAudioFrame frame) {
-            lock (_sampleBufferLock) {
-                _sampleBuffer.Enqueue(frame);
-            }
-        }
-    }
-
-
-    /*
-    [RequireComponent(typeof(AudioSource))]
-    public class RGBDAudio : MonoBehaviour {
-        private Queue<RGBDAudioFrame> _sampleBuffer;
-        private readonly object _sampleBufferLock = new object();
-
-        public int SampleSec;
-        private int sampleSum = 0;
-        private float lastSampleAvg = 0.0f;
-        private float sampleAvgInterval = 2.0f;
-
-        AudioSource aud;
-        private int clipFreq = -1;
-        private int clipChan = -1;
-        private int clipLen = 441000;
-        private int lastSamplePos = 0;
-
-
-
-        
-        //void OnAudioRead(float[] data) {
-        //    int count = 0;
-        //    while (count < data.Length) {
-        //        data[count] = 
-        //    }
-        //}
-
-        void Awake() {
-            _sampleBuffer = new Queue<RGBDAudioFrame>();
-            sampleSum = 0;
-        }
-
-        void Start() {
-            aud = GetComponent<AudioSource>();
-            aud.loop = true;
-        }
-
-        void Update() {
-            RGBDAudioFrame aframe = DequeueBuffer();
-            while (aframe != null) {
-                if (clipFreq != aframe.frequency || clipChan != aframe.channels) {
-                    clipFreq = aframe.frequency;
-                    clipChan = aframe.channels;
-                    clipLen = aframe.frequency * 10;
-                    aud.clip = AudioClip.Create("RemoteAudio",
-                        clipLen, clipChan, clipFreq, false);
-                    lastSamplePos = 0;
-                    aud.timeSamples = 0;
-                    Debug.Log("(Re)initialized audio: "+clipFreq+" "+clipChan);
+        // Read all audio samples from buffered audio frames into queue
+        private void EnqueueSamples() {
+            RGBDAudioFrame f = PollSampleBuffer();
+            while (f != null) {
+                foreach (float s in f.samples) {
+                    //dataPosition++;
+                    _sampleSampleBuffer.Enqueue(s);
                 }
-
-                sampleSum += aframe.samples.Length;
-                aud.clip.SetData(aframe.samples, lastSamplePos);
-
-                if (lastSamplePos > aud.timeSamples + clipFreq/2 ||
-                   (lastSamplePos < aud.timeSamples && lastSamplePos > clipFreq/2
-                    && aud.timeSamples < clipLen - clipFreq/2)) {
-                    aud.timeSamples = lastSamplePos;
-                }
-
-                if (!aud.isPlaying) aud.Play();
-
-                lastSamplePos += aframe.samples.Length;
-                if (lastSamplePos >= clipLen)
-                    lastSamplePos -= clipLen;
-
-                aframe = DequeueBuffer();
-            }
-
-
-            UpdatePlayer();
-
-            if (lastSampleAvg+sampleAvgInterval <= Time.time) {
-                lastSampleAvg = Time.time;
-                SampleSec = sampleSum / 2;
-                sampleSum = 0;
+                f = PollSampleBuffer();
             }
         }
 
-
-        void UpdatePlayer() {
-            if (!aud.isPlaying) {
-                return;
-            }
-
-            if (aud.timeSamples > lastSamplePos && aud.timeSamples - lastSamplePos < clipFreq/2) {
-                aud.Pause();
-                Debug.Log("PAUSED");
-            }
-        }
-
-        private RGBDAudioFrame DequeueBuffer() {
+        private RGBDAudioFrame PollSampleBuffer() {
             RGBDAudioFrame res = null;
             lock (_sampleBufferLock) {
                 if (_sampleBuffer.Count > 0) {
@@ -287,12 +86,29 @@ namespace oi.plugin.rgbd {
             }
             return res;
         }
+        
+        void OnAudioFilterRead(float[] data, int channels) {
+            int dataLen = data.Length / channels;
+            int srcLen = dataLen / 3;
 
-        public void QueueBuffer(RGBDAudioFrame frame) {
-            lock (_sampleBufferLock) {
-                _sampleBuffer.Enqueue(frame);
+            if (_sampleSampleBuffer.Count <= srcLen) return;
+            while (_sampleSampleBuffer.Count > srcLen * 8) {
+                _sampleSampleBuffer.Dequeue();
+            }
+
+            int t = 0;
+            float val = 0f;
+            while (t < dataLen) {
+                if (t % 3 == 0)
+                    val = _sampleSampleBuffer.Dequeue();
+                int c = 0;
+                while (c < channels) {
+                    data[t * channels + c] += val;
+                    c++;
+                }
+                t++;
             }
         }
-    } */
-
+    }
+    
 }
